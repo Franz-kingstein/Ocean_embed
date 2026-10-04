@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OceanEmbed — Subsurface Temperature Map</title>
+<style>
+  :root{
+    --bg:#0f1519;
+    --panel:#151d23;
+    --panel2:#192229;
+    --line:#27343d;
+    --line2:#1d262d;
+    --txt:#ece8e0;
+    --dim:#9aa4ac;
+    --mute:#6d7881;
+    --accent:#c9a15a;
+    --ref:#5f8fa3;
+    --serif:"Iowan Old Style","Palatino Linotype",Palatino,"Book Antiqua",serif;
+    --sans:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    --mono:"SF Mono","JetBrains Mono","Roboto Mono",Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{background:var(--bg);color:var(--txt);font-family:var(--sans);font-size:14px;
+    line-height:1.5;-webkit-font-smoothing:antialiased;overflow:hidden}
+  header{height:56px;display:flex;align-items:center;justify-content:space-between;
+    padding:0 22px;border-bottom:1px solid var(--line);background:var(--bg);z-index:5}
+  .brand{display:flex;align-items:baseline;gap:12px}
+  .mark{width:11px;height:11px;background:var(--accent);display:inline-block;transform:translateY(1px)}
+  .brand h1{font-family:var(--serif);font-weight:500;font-size:19px;letter-spacing:.2px}
+  .brand span{font-size:11px;color:var(--mute);letter-spacing:.13em;text-transform:uppercase;font-family:var(--mono)}
+  header nav{font-size:11.5px;color:var(--dim);letter-spacing:.08em;text-transform:uppercase;font-family:var(--mono)}
+
+  main{height:calc(100vh - 56px);height:calc(100dvh - 56px);
+    display:grid;grid-template-columns:1fr 400px}
+  .mapwrap{position:relative;overflow:hidden;background:#12191e}
+  #map{position:absolute;inset:0;display:block;cursor:crosshair}
+  .mapnote{position:absolute;left:16px;bottom:12px;max-width:640px;font-family:var(--mono);font-size:10.5px;
+    color:var(--mute);letter-spacing:.04em;line-height:1.5}
+  .legend{position:absolute;right:16px;bottom:14px;width:210px;
+    background:rgba(15,21,25,.85);border:1px solid var(--line);padding:10px 12px}
+  .legend .bar{height:11px;border:1px solid var(--line2)}
+  .legend .lab{display:flex;justify-content:space-between;font-family:var(--mono);
+    font-size:10px;color:var(--mute);margin-top:5px}
+  .legend .ttl{font-family:var(--mono);font-size:9.5px;letter-spacing:.14em;
+    text-transform:uppercase;color:var(--mute);margin-bottom:8px}
+
+  aside{grid-column:2;border-left:1px solid var(--line);background:var(--panel);overflow-y:auto}
+  .block{padding:16px 20px;border-bottom:1px solid var(--line2)}
+  .block h2{font-family:var(--mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase;
+    color:var(--mute);font-weight:500;margin-bottom:12px}
+
+  .explain{font-size:13px;color:var(--dim);line-height:1.65}
+  .explain b{color:var(--txt);font-weight:500}
+  .explain .step{display:flex;gap:10px;margin-bottom:9px}
+  .explain .n{font-family:var(--mono);font-size:10px;color:var(--accent);
+    border:1px solid var(--line);min-width:18px;height:18px;display:flex;align-items:center;
+    justify-content:center;margin-top:2px}
+  .explain .step:last-child{margin-bottom:0}
+
+  .field{margin-bottom:13px}
+  .field:last-child{margin-bottom:0}
+  .field label{display:block;font-family:var(--mono);font-size:10px;letter-spacing:.1em;
+    text-transform:uppercase;color:var(--mute);margin-bottom:6px}
+  .seg{display:flex;border:1px solid var(--line)}
+  .seg button{flex:1;background:transparent;border:none;color:var(--dim);padding:8px 0;
+    font-family:var(--mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;
+    cursor:pointer;transition:.15s}
+  .seg button+button{border-left:1px solid var(--line)}
+  .seg button.on{background:var(--accent);color:#141008;font-weight:600}
+  .seg button:not(.on):hover{color:var(--txt)}
+  select,input[type=date],input[type=number]{
+    width:100%;background:var(--panel2);border:1px solid var(--line);color:var(--txt);
+    font-family:var(--mono);font-size:12.5px;padding:8px 10px;outline:none;-webkit-appearance:none}
+  select:focus,input:focus{border-color:var(--accent)}
+  input[type=range]{width:100%;-webkit-appearance:none;height:2px;background:var(--line);
+    outline:none;margin:10px 0 2px}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;height:12px;
+    background:var(--accent);cursor:pointer}
+  input[type=range]::-moz-range-thumb{width:12px;height:12px;background:var(--accent);border:none;cursor:pointer}
+  .inline{display:flex;justify-content:space-between;font-family:var(--mono);font-size:11px;
+    color:var(--dim);letter-spacing:.03em}
+  .inline b{color:var(--txt);font-weight:500}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .btn{width:100%;background:transparent;border:1px solid var(--line);color:var(--dim);
+    padding:9px 0;font-family:var(--mono);font-size:11px;letter-spacing:.09em;
+    text-transform:uppercase;cursor:pointer;transition:.15s;margin-top:2px}
+  .btn:hover{border-color:var(--accent);color:var(--txt)}
+  .btn.on{background:var(--accent);color:#141008;border-color:var(--accent);font-weight:600}
+
+  .rowlist{font-family:var(--mono);font-size:12px}
+  .rowlist .r{display:flex;justify-content:space-between;padding:4px 0}
+  .rowlist .r .l{color:var(--dim)}
+  .rowlist .r .v{color:var(--txt)}
+  .rowlist .r .v.accent{color:var(--accent)}
+  .note{font-size:11.5px;color:var(--mute);line-height:1.5;margin-top:8px}
+
+  #profile{width:100%;height:150px;display:block}
+  .profhead{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px}
+  .profhead .loc{font-family:var(--mono);font-size:11.5px;color:var(--txt)}
+  .profhead .sw{font-family:var(--mono);font-size:10px;color:var(--dim)}
+  .dot{display:inline-block;width:8px;height:8px;margin-right:5px;transform:translateY(1px)}
+
+  @media(max-width:980px){
+    main{grid-template-columns:1fr;grid-template-rows:52vh 1fr}
+    aside{grid-column:1;border-left:none;border-top:1px solid var(--line)}
+    .mapwrap{grid-row:1}
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="brand">
+    <span class="mark"></span>
+    <h1>OceanEmbed</h1>
+    <span>Subsurface temperature reconstruction</span>
+  </div>
+  <nav>Bay of Bengal · January 2020 pilot</nav>
+</header>
+
+<main>
+  <section class="mapwrap">
+    <canvas id="map"></canvas>
+    <div class="mapnote">Colored area = the model's predicted field (Bay of Bengal pilot domain). Surrounding seas are shown for context and are not predicted. Click a point in the colored area to read its temperature–depth profile.</div>
+    <div class="legend">
+      <div class="ttl" id="legTitle">Sea temperature at surface</div>
+      <div class="bar" id="bar"></div>
+      <div class="lab"><span id="tmin">8</span><span id="tmax">29 °C</span></div>
+    </div>
+  </section>
+
+  <aside>
+    <div class="block">
+      <h2>What this shows</h2>
+      <div class="explain">
+        <div class="step"><span class="n">1</span><div>Nine <b>satellite surface measurements</b> for one day (temperature, salinity, currents, winds, sea level).</div></div>
+        <div class="step"><span class="n">2</span><div>A neural network converts them into the <b>temperature at depth</b>, for every point on the map.</div></div>
+        <div class="step"><span class="n">3</span><div>The map below is that prediction. <b>Click a point</b> to see how temperature changes with depth there.</div></div>
+      </div>
+    </div>
+
+    <div class="block">
+      <h2>Try it — set the inputs</h2>
+      <div class="field">
+        <label>Variable shown on map</label>
+        <div class="seg" id="modeSeg">
+          <button data-mode="sst" class="on">Surface</button>
+          <button data-mode="depth">At depth</button>
+        </div>
+      </div>
+      <div class="field" id="depthField" style="display:none">
+        <label>Depth</label>
+        <select id="depthSel"></select>
+      </div>
+      <div class="field">
+        <label>Date</label>
+        <div class="inline" style="margin-bottom:4px"><span id="dateLabel">15 Jan 2020</span><span id="dateRange">1–31 Jan 2020</span></div>
+        <input type="range" id="dateSlider" min="0" max="30" value="14" step="1">
+        <button class="btn" id="playBtn" style="margin-top:6px">Play timeline</button>
+      </div>
+      <div class="field">
+        <label>Field source</label>
+        <div class="seg" id="srcSeg">
+          <button data-src="model" class="on">Model</button>
+          <button data-src="reference">Reference</button>
+        </div>
+      </div>
+      <div class="field">
+        <label>Query a coordinate</label>
+        <div class="grid2">
+          <input type="number" id="latIn" value="14.00" step="0.25" min="10" max="18" placeholder="Lat °N">
+          <input type="number" id="lonIn" value="87.00" step="0.25" min="82" max="92" placeholder="Lon °E">
+        </div>
+        <button class="btn" id="queryBtn">Read profile here</button>
+      </div>
+    </div>
+
+    <div class="block">
+      <h2>Profile at selected point</h2>
+      <div class="profhead">
+        <span class="loc" id="selLoc">14.00°N, 87.00°E</span>
+        <span class="sw"><span class="dot" style="background:var(--accent)"></span>Model
+          &nbsp;<span class="dot" style="background:var(--ref)"></span>Reference</span>
+      </div>
+      <canvas id="profile"></canvas>
+    </div>
+
+    <div class="block">
+      <h2>Reading the profile</h2>
+      <div class="explain" style="font-size:12.5px">
+        The horizontal axis is temperature (°C); the vertical axis is depth (m), surface at
+        top. The <b>copper line</b> is the model; the <b>blue line</b> is the GLORYS12
+        reference. The sharp bend is the <b>thermocline</b>, where warm surface water
+        gives way to cold deep water.
+      </div>
+    </div>
+
+    <div class="block">
+      <h2>Model &amp; validation</h2>
+      <div class="rowlist">
+        <div class="r"><span class="l">Architecture</span><span class="v">CNN · ConvGRU · Attention</span></div>
+        <div class="r"><span class="l">Parameters</span><span class="v">1,330,640</span></div>
+        <div class="r"><span class="l">Inputs</span><span class="v">9 surface variables</span></div>
+        <div class="r"><span class="l">Output</span><span class="v">14 depths, 0–700 m</span></div>
+        <div class="r"><span class="l">ARGO observations</span><span class="v">9,781 (16 floats)</span></div>
+        <div class="r"><span class="l">Held-out RMSE</span><span class="v accent">0.791 °C</span></div>
+        <div class="r"><span class="l">Held-out correlation</span><span class="v accent">0.993</span></div>
+      </div>
+      <div class="note">Validated against real ARGO float profiles on days not used in
+        training. Reference is the GLORYS12 reanalysis. This is a one-month, one-basin
+        proof of concept.</div>
+    </div>
+  </aside>
+</main>
+
+<script src="data/data.js"></script>
+<script src="data/coast.js"></script>
+<script>
+(function(){
+"use strict";
+const D = window.OCEAN_DATA, COAST = window.OCEAN_COAST || [];
+if(!D){document.body.innerHTML='<p style="padding:40px;font-family:monospace">Data not found.</p>';return;}
+const M = D.meta, W=M.grid.W, H=M.grid.H, ND=M.grid.D, DEPTHS=M.depths, DATES=M.dates;
+const TMIN=M.tempRange.min, TMAX=M.tempRange.max;
+
+function u8(s){const b=atob(s);const a=new Uint8Array(b.length);for(let i=0;i<b.length;i++)a[i]=b.charCodeAt(i);return a;}
+const MODEL=u8(D.model), REF=u8(D.reference), SSTQ=u8(D.sst);
+const SSTMIN=M.sstRange.min, SSTMAX=M.sstRange.max;
+
+/* map view bounds (wider than the model field for context) */
+const V={lon0:78,lon1:106,lat0:5,lat1:22};
+const F={lon0:M.domain.lonMin,lon1:M.domain.lonMax,lat0:M.domain.latMin,lat1:M.domain.latMax};
+
+/* thermal ramp */
+const STOPS=[[0,[12,38,66]],[0.18,[23,76,100]],[0.38,[48,126,140]],[0.55,[116,169,156]],
+  [0.70,[201,181,136]],[0.85,[199,128,79]],[1,[159,60,47]]];
+const LUT=new Uint8Array(768);
+for(let i=0;i<256;i++){const f=i/255;let a=STOPS[0],b=STOPS[STOPS.length-1];
+  for(let k=0;k<STOPS.length-1;k++){if(f>=STOPS[k][0]&&f<=STOPS[k+1][0]){a=STOPS[k];b=STOPS[k+1];break;}}
+  const s=(b[0]-a[0])||1,t=(f-a[0])/s;
+  LUT[i*3]=a[1][0]+(b[1][0]-a[1][0])*t;LUT[i*3+1]=a[1][1]+(b[1][1]-a[1][1])*t;LUT[i*3+2]=a[1][2]+(b[1][2]-a[1][2])*t;}
+
+/* legend gradient */
+(function(){let css='linear-gradient(90deg,';
+  for(let i=0;i<=10;i++){const f=i/10;let a=STOPS[0],b=STOPS[STOPS.length-1];
+    for(let k=0;k<STOPS.length-1;k++){if(f>=STOPS[k][0]&&f<=STOPS[k+1][0]){a=STOPS[k];b=STOPS[k+1];break;}}
+    const s=(b[0]-a[0])||1,t=(f-a[0])/s;
+    css+=`rgb(${Math.round(a[1][0]+(b[1][0]-a[1][0])*t)},${Math.round(a[1][1]+(b[1][1]-a[1][1])*t)},${Math.round(a[1][2]+(b[1][2]-a[1][2])*t)}) ${i*10}%`+(i<10?',':'');}
+  document.getElementById('bar').style.background=css+')';})();
+
+/* state */
+let day=14, mode='sst', depthIdx=0, source='model';
+let sel={w:Math.floor(W/2),h:Math.floor(H/2)};
+
+/* field accessors */
+function idxv(key,t,d,h,w){return ((t*ND+d)*H+h)*W+w;}
+function vol(key){return key==='model'?MODEL:REF;}
+function tempAt(key,t,d,h,w){const r=vol(key)[idxv(key,t,d,h,w)];
+  if(r===0)return NaN;return TMIN+((r-1)/254)*(TMAX-TMIN);}
+function sstAt(t,h,w){const q=SSTQ[t*H*W+h*W+w];
+  if(q===0)return NaN;
+  return (SSTMIN+(q/255)*(SSTMAX-SSTMIN))-273.15;}  /* OSTIA SST is stored in Kelvin */
+
+/* offscreen field canvas */
+const fld=document.createElement('canvas');fld.width=W;fld.height=H;
+const fctx=fld.getContext('2d');
+const fimg=fctx.createImageData(W,H);
+function renderField(){
+  const data=fimg.data;
+  const lo = mode==='sst'?20:TMIN, hi = mode==='sst'?30:TMAX;
+  for(let h=0;h<H;h++)for(let w=0;w<W;w++){
+    const o=(h*W+w)*4; let t;
+    if(mode==='sst'){t=sstAt(day,h,w);}
+    else{t=tempAt(source,day,depthIdx,h,w);}
+    if(isNaN(t)||t<1){data[o+3]=0;continue;}
+    const n=Math.max(0,Math.min(1,(t-lo)/(hi-lo)));
+    const c=Math.round(n*255)*3;
+    data[o]=LUT[c];data[o+1]=LUT[c+1];data[o+2]=LUT[c+2];data[o+3]=255;
+  }
+  fctx.putImageData(fimg,0,0);
+}
+
+/* map canvas */
+const cv=document.getElementById('map'),ctx=cv.getContext('2d');
+let vw=0,vh=0,dpr=1,scale=1,ox=0,oy=0;
+function proj(){const wdeg=V.lon1-V.lon0,hdeg=V.lat1-V.lat0;
+  scale=Math.min(vw/wdeg,vh/hdeg);ox=(vw-wdeg*scale)/2;oy=(vh-hdeg*scale)/2;}
+function X(lon){return ox+(lon-V.lon0)*scale;}
+function Y(lat){return oy+(V.lat1-lat)*scale;}
+
+function resize(){const r=cv.parentElement.getBoundingClientRect();
+  dpr=Math.min(window.devicePixelRatio||1,2);vw=r.width;vh=r.height;
+  cv.width=vw*dpr;cv.height=vh*dpr;cv.style.width=vw+'px';cv.style.height=vh+'px';
+  ctx.setTransform(dpr,0,0,dpr,0,0);proj();draw();}
+
+function draw(){
+  ctx.clearRect(0,0,vw,vh);
+  /* ocean background */
+  ctx.fillStyle='#12202b';ctx.fillRect(0,0,vw,vh);
+
+  /* the predicted field */
+  renderField();
+  const x0=X(F.lon0),x1=X(F.lon1),y0=Y(F.lat1),y1=Y(F.lat0);
+  ctx.imageSmoothingEnabled=true;
+  ctx.globalAlpha=0.97;
+  ctx.drawImage(fld,0,0,W,H,x0,y0,x1-x0,y1-y0);
+  ctx.globalAlpha=1;
+  /* field frame */
+  ctx.strokeStyle='rgba(236,232,224,.18)';ctx.lineWidth=1;ctx.strokeRect(x0,y0,x1-x0,y1-y0);
+
+  /* coastline (land drawn as filled polygons, even-odd so lakes are holes) */
+  ctx.save();
+  ctx.beginPath();ctx.rect(0,0,vw,vh);ctx.clip();
+  COAST.forEach(poly=>{
+    ctx.beginPath();
+    poly.forEach(ring=>{
+      ring.forEach((p,i)=>{const px=X(p[0]),py=Y(p[1]);i?ctx.lineTo(px,py):ctx.moveTo(px,py);});
+      ctx.closePath();
+    });
+    ctx.fillStyle='#232b24';ctx.fill('evenodd');
+    ctx.strokeStyle='rgba(150,160,150,.5)';ctx.lineWidth=1;ctx.stroke();
+  });
+  ctx.restore();
+
+  /* graticule */
+  ctx.strokeStyle='rgba(154,164,172,.12)';ctx.lineWidth=1;ctx.font='10px "SF Mono",monospace';
+  ctx.fillStyle='rgba(154,164,172,.6)';
+  for(let lon=80;lon<=105;lon+=5){const px=X(lon);ctx.beginPath();ctx.moveTo(px,Y(V.lat0));ctx.lineTo(px,Y(V.lat1));ctx.stroke();
+    ctx.fillText(lon+'°E',px+2,Y(V.lat0)-4);}
+  for(let lat=6;lat<=21;lat+=4){const py=Y(lat);ctx.beginPath();ctx.moveTo(X(V.lon0),py);ctx.lineTo(X(V.lon1),py);ctx.stroke();
+    ctx.fillText(lat+'°N',X(V.lon0)+3,py-3);}
+
+  /* data-field label */
+  ctx.fillStyle='rgba(236,232,224,.55)';ctx.font='10px "SF Mono",monospace';
+  ctx.fillText('MODEL DOMAIN', x0+4, y0+13);
+
+  /* sea names for geographic context */
+  ctx.save();
+  ctx.textAlign='center';
+  ctx.font='600 11px "SF Mono",monospace';
+  ctx.fillStyle='rgba(154,164,172,.5)';
+  function sea(txt,lon,lat,ls){
+    const px=X(lon),py=Y(lat);
+    ctx.save();ctx.translate(px,py);
+    if(ls){/* manual letter spacing */}
+    ctx.fillText(txt,0,0);
+    ctx.restore();
+  }
+  sea('BAY OF BENGAL',86.5,20.2);
+  sea('ARABIAN SEA',79.6,14.5);
+  sea('INDIAN OCEAN',84.5,7.0);
+  /* highlight the model study area */
+  ctx.setLineDash([4,4]);
+  ctx.strokeStyle='rgba(201,161,90,.55)';ctx.lineWidth=1;
+  ctx.strokeRect(x0,y0,x1-x0,y1-y0);
+  ctx.setLineDash([]);
+  ctx.textAlign='left';
+  ctx.restore();
+
+  /* selected point */
+  const lonp=F.lon0+sel.w*(F.lon1-F.lon0)/(W-1);
+  const latp=F.lat0+sel.h*(F.lat1-F.lat0)/(H-1);
+  const px=X(lonp),py=Y(latp);
+  ctx.strokeStyle='#ece8e0';ctx.lineWidth=1.5;
+  ctx.beginPath();ctx.arc(px,py,6,0,Math.PI*2);ctx.stroke();
+  ctx.fillStyle='#c9a15a';ctx.beginPath();ctx.arc(px,py,2.6,0,Math.PI*2);ctx.fill();
+}
+
+/* profile chart */
+const pcv=document.getElementById('profile'),pctx=pcv.getContext('2d');
+function drawProfile(){
+  const r=pcv.getBoundingClientRect();
+  const padL=38,padR=12,padT=8,padB=22;
+  const w=Math.max(10,r.width),h=Math.max(10,r.height);
+  const dp=Math.min(window.devicePixelRatio||1,2);
+  pcv.width=w*dp;pcv.height=h*dp;pctx.setTransform(dp,0,0,dp,0,0);
+  pctx.clearRect(0,0,w,h);
+  const d0=DEPTHS[0],d1=DEPTHS[ND-1],t0=8,t1=30;
+  const PX=v=>padL+(v-t0)/(t1-t0)*(w-padL-padR);
+  const PY=v=>padT+(v-d0)/(d1-d0)*(h-padT-padB);
+
+  pctx.strokeStyle='rgba(154,164,172,.15)';pctx.lineWidth=1;
+  pctx.font='9.5px "SF Mono",monospace';pctx.fillStyle='#6d7881';
+  for(let t=10;t<=30;t+=5){const x=PX(t);pctx.beginPath();pctx.moveTo(x,padT);pctx.lineTo(x,h-padB);pctx.stroke();
+    pctx.fillText(t+'°',x-6,h-padB+13);}
+  for(const dep of [0,100,300,700]){const y=PY(dep);
+    pctx.beginPath();pctx.moveTo(padL,y);pctx.lineTo(w-padR,y);pctx.stroke();
+    pctx.fillText(dep+'m',6,y+3);}
+
+  function line(key,color,width){
+    pctx.beginPath();let started=false;
+    for(let d=0;d<ND;d++){const t=tempAt(key,day,d,sel.h,sel.w);
+      if(isNaN(t))continue;const x=PX(t),y=PY(DEPTHS[d]);
+      if(!started){pctx.moveTo(x,y);started=true;}else pctx.lineTo(x,y);}
+    pctx.strokeStyle=color;pctx.lineWidth=width;pctx.stroke();
+  }
+  line('reference','#5f8fa3',1.5);
+  line('model','#c9a15a',2.2);
+}
+
+function refresh(){
+  draw();drawProfile();
+  const d=new Date(DATES[day]);const mo=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  document.getElementById('dateLabel').textContent=
+    String(d.getUTCDate()).padStart(2,'0')+' '+mo[d.getUTCMonth()]+' '+d.getUTCFullYear();
+  const loc=F.lat0+sel.h*(F.lat1-F.lat0)/(H-1), loc2=F.lon0+sel.w*(F.lon1-F.lon0)/(W-1);
+  document.getElementById('selLoc').textContent=loc.toFixed(2)+'°N, '+loc2.toFixed(2)+'°E';
+  document.getElementById('legTitle').textContent=
+    mode==='sst'?'Sea temperature at surface':('Temperature at '+DEPTHS[depthIdx]+' m');
+  document.getElementById('tmin').textContent=(mode==='sst'?20:TMIN);
+  document.getElementById('tmax').textContent=(mode==='sst'?30:TMAX);
+}
+
+/* interaction */
+let dragging=false,moved=false,lx=0,ly=0;
+cv.addEventListener('pointerdown',e=>{dragging=true;moved=false;lx=e.clientX;ly=e.clientY;cv.setPointerCapture(e.pointerId);});
+cv.addEventListener('pointerup',e=>{dragging=false;if(!moved)pick(e);});
+cv.addEventListener('pointermove',e=>{if(dragging&&(Math.abs(e.clientX-lx)+Math.abs(e.clientY-ly)>3))moved=true;});
+cv.addEventListener('click',e=>{if(moved)return;pick(e);});
+function pick(e){
+  const r=cv.getBoundingClientRect();const mx=e.clientX-r.left,my=e.clientY-r.top;
+  const lon=V.lon0+(mx-ox)/scale, lat=V.lat1-(my-oy)/scale;
+  let w=Math.round((lon-F.lon0)/(F.lon1-F.lon0)*(W-1));
+  let h=Math.round((lat-F.lat0)/(F.lat1-F.lat0)*(H-1));
+  sel.w=Math.max(0,Math.min(W-1,w));sel.h=Math.max(0,Math.min(H-1,h));
+  document.getElementById('latIn').value=(F.lat0+sel.h*(F.lat1-F.lat0)/(H-1)).toFixed(2);
+  document.getElementById('lonIn').value=(F.lon0+sel.w*(F.lon1-F.lon0)/(W-1)).toFixed(2);
+  refresh();
+}
+document.getElementById('queryBtn').addEventListener('click',()=>{
+  const la=parseFloat(document.getElementById('latIn').value);
+  const lo=parseFloat(document.getElementById('lonIn').value);
+  if(isNaN(la)||isNaN(lo))return;
+  let h=Math.round((Math.min(F.lat1,Math.max(F.lat0,la))-F.lat0)/(F.lat1-F.lat0)*(H-1));
+  let w=Math.round((Math.min(F.lon1,Math.max(F.lon0,lo))-F.lon0)/(F.lon1-F.lon0)*(W-1));
+  sel.h=h;sel.w=w;refresh();
+});
+
+/* controls */
+const depthSel=document.getElementById('depthSel');
+DEPTHS.forEach((d,i)=>{const o=document.createElement('option');o.value=i;o.textContent=d+' m';depthSel.appendChild(o);});
+depthSel.value=0;
+depthSel.addEventListener('change',()=>{depthIdx=+depthSel.value;refresh();});
+document.getElementById('modeSeg').addEventListener('click',e=>{
+  const b=e.target.closest('button');if(!b)return;mode=b.dataset.mode;
+  [...e.currentTarget.children].forEach(x=>x.classList.toggle('on',x===b));
+  document.getElementById('depthField').style.display=(mode==='depth')?'block':'none';
+  refresh();
+});
+document.getElementById('srcSeg').addEventListener('click',e=>{
+  const b=e.target.closest('button');if(!b)return;source=b.dataset.src;
+  [...e.currentTarget.children].forEach(x=>x.classList.toggle('on',x===b));refresh();
+});
+document.getElementById('dateSlider').addEventListener('input',e=>{
+  day=+e.target.value;refresh();
+});
+document.getElementById('dateSlider').max=DATES.length-1;
+let playing=false,timer=null;
+document.getElementById('playBtn').addEventListener('click',e=>{
+  playing=!playing;e.target.classList.toggle('on',playing);
+  e.target.textContent=playing?'Pause':'Play timeline';
+  if(playing){timer=setInterval(()=>{day=(day+1)%DATES.length;
+    document.getElementById('dateSlider').value=day;refresh();},650);}
+  else clearInterval(timer);
+});
+window.addEventListener('resize',()=>{resize();drawProfile();});
+
+/* init */
+document.getElementById('dateSlider').value=day;
+resize();refresh();
+})();
+</script>
+</body>
+</html>

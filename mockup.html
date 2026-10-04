@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OceanEmbed — Interface Preview (mockup)</title>
+<style>
+  :root{
+    --bg:#0f1519;--panel:#151d23;--panel2:#192229;--line:#27343d;--line2:#1d262d;
+    --txt:#ece8e0;--dim:#9aa4ac;--mute:#6d7881;--accent:#c9a15a;--ref:#5f8fa3;
+    --serif:"Iowan Old Style","Palatino Linotype",Palatino,"Book Antiqua",serif;
+    --sans:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    --mono:"SF Mono","JetBrains Mono","Roboto Mono",Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{background:var(--bg);color:var(--txt);font-family:var(--sans);font-size:14px;
+    line-height:1.5;-webkit-font-smoothing:antialiased;overflow:hidden}
+  header{height:54px;display:flex;align-items:center;justify-content:space-between;
+    padding:0 20px;border-bottom:1px solid var(--line);z-index:5}
+  .brand{display:flex;align-items:baseline;gap:11px}
+  .mark{width:11px;height:11px;background:var(--accent);display:inline-block;transform:translateY(1px)}
+  .brand h1{font-family:var(--serif);font-weight:500;font-size:18px}
+  .brand span{font-size:10.5px;color:var(--mute);letter-spacing:.13em;text-transform:uppercase;font-family:var(--mono)}
+  .mock{font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;
+    color:var(--accent);border:1px solid var(--accent);padding:3px 9px}
+  header nav{font-size:11px;color:var(--dim);letter-spacing:.08em;text-transform:uppercase;font-family:var(--mono)}
+
+  main{height:calc(100vh - 54px);height:calc(100dvh - 54px);
+    display:grid;grid-template-columns:1fr 372px;grid-template-rows:1fr 240px}
+  .pane{position:relative;overflow:hidden}
+  .mapPane{grid-column:1;grid-row:1;border-right:1px solid var(--line);background:#12191e}
+  .threePane{display:none}
+  #map{position:absolute;inset:0;display:block;cursor:crosshair}
+  #three{position:absolute;inset:0;display:block;cursor:grab}
+  .paneTag{position:absolute;left:14px;top:12px;font-family:var(--mono);font-size:10px;
+    letter-spacing:.14em;text-transform:uppercase;color:var(--mute)}
+  .legend{position:absolute;right:14px;top:12px;width:190px;background:rgba(15,21,25,.86);
+    border:1px solid var(--line);padding:9px 11px}
+  .legend .bar{height:10px;border:1px solid var(--line2)}
+  .legend .lab{display:flex;justify-content:space-between;font-family:var(--mono);font-size:9.5px;color:var(--mute);margin-top:4px}
+  .legend .ttl{font-family:var(--mono);font-size:9px;letter-spacing:.13em;text-transform:uppercase;color:var(--mute);margin-bottom:7px}
+
+  /* view tabs */
+  .viewTabs{position:fixed;left:14px;bottom:14px;display:flex;border:1px solid var(--line);
+    background:rgba(15,21,25,.86);z-index:10}
+  .viewTabs button{background:transparent;border:none;color:var(--dim);padding:7px 14px;
+    font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;cursor:pointer}
+  .viewTabs button+button{border-left:1px solid var(--line)}
+  .viewTabs button.on{background:var(--accent);color:#141008;font-weight:600}
+
+  aside{grid-column:2;grid-row:1 / span 2;border-left:1px solid var(--line);background:var(--panel);overflow-y:auto}
+  .block{padding:15px 18px;border-bottom:1px solid var(--line2)}
+  .block h2{font-family:var(--mono);font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;
+    color:var(--mute);font-weight:500;margin-bottom:11px}
+  .field{margin-bottom:12px}
+  .field:last-child{margin-bottom:0}
+  .field label{display:block;font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;
+    text-transform:uppercase;color:var(--mute);margin-bottom:5px}
+  .seg{display:flex;border:1px solid var(--line)}
+  .seg button{flex:1;background:transparent;border:none;color:var(--dim);padding:7px 0;
+    font-family:var(--mono);font-size:10.5px;letter-spacing:.05em;text-transform:uppercase;cursor:pointer}
+  .seg button+button{border-left:1px solid var(--line)}
+  .seg button.on{background:var(--accent);color:#141008;font-weight:600}
+  select,input[type=number],input[type=text]{
+    width:100%;background:var(--panel2);border:1px solid var(--line);color:var(--txt);
+    font-family:var(--mono);font-size:12px;padding:7px 9px;outline:none;-webkit-appearance:none}
+  select:focus,input:focus{border-color:var(--accent)}
+  input[type=range]{width:100%;-webkit-appearance:none;height:2px;background:var(--line);outline:none;margin:10px 0 2px}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;height:12px;background:var(--accent);cursor:pointer}
+  input[type=range]::-moz-range-thumb{width:12px;height:12px;background:var(--accent);border:none;cursor:pointer}
+  .inline{display:flex;justify-content:space-between;font-family:var(--mono);font-size:10.5px;color:var(--dim)}
+  .inline b{color:var(--txt);font-weight:500}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .btn{width:100%;background:transparent;border:1px solid var(--line);color:var(--dim);
+    padding:8px 0;font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;
+    cursor:pointer;transition:.15s;margin-top:2px}
+  .btn:hover{border-color:var(--accent);color:var(--txt)}
+  .btn.on{background:var(--accent);color:#141008;border-color:var(--accent);font-weight:600}
+  .explain{font-size:12.5px;color:var(--dim);line-height:1.6}
+  .explain b{color:var(--txt);font-weight:500}
+
+  /* bottom strip: profile */
+  .strip{grid-column:1;grid-row:2;border-top:1px solid var(--line);background:var(--panel2);
+    display:grid;grid-template-columns:1fr 300px}
+  .strip .cell{padding:12px 18px;border-right:1px solid var(--line2)}
+  .strip .cell:last-child{border-right:none}
+  .strip h3{font-family:var(--mono);font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;
+    color:var(--mute);font-weight:500;margin-bottom:7px}
+  #profile{width:100%;height:150px;display:block}
+  .sw{font-family:var(--mono);font-size:10px;color:var(--dim);float:right}
+  .dot{display:inline-block;width:8px;height:8px;margin-right:4px;transform:translateY(1px)}
+  .stats{font-family:var(--mono);font-size:11.5px;color:var(--dim);line-height:1.9}
+  .stats b{color:var(--txt);font-weight:500}
+  @media(max-width:1000px){
+    main{grid-template-columns:1fr;grid-template-rows:1fr}
+    aside{display:none}
+    .strip{display:none}
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="brand">
+    <span class="mark"></span>
+    <h1>OceanEmbed</h1>
+    <span>Subsurface temperature reconstruction</span>
+  </div>
+  <nav>North Indian Ocean · January 2020</nav>
+  <div class="mock">Interface preview</div>
+</header>
+
+<main>
+  <div class="viewTabs" id="viewTabs">
+    <button data-view="map" class="on">Map</button>
+    <button data-view="3d">3D volume</button>
+  </div>
+  <section class="pane mapPane">
+    <canvas id="map"></canvas>
+    <div class="paneTag" id="viewTag">Map · surface temperature</div>
+    <div class="legend">
+      <div class="ttl" id="legTitle">Sea temperature at surface</div>
+      <div class="bar" id="bar"></div>
+      <div class="lab"><span id="tmin">20</span><span id="tmax">30 °C</span></div>
+    </div>
+  </section>
+  <section class="pane threePane">
+    <canvas id="three"></canvas>
+  </section>
+
+  <aside>
+    <div class="block">
+      <h2>What this shows</h2>
+      <div class="explain">
+        Satellite surface measurements are converted by a neural network into
+        <b>temperature at depth</b> across the North Indian Ocean — Arabian Sea,
+        Bay of Bengal and the Indian Ocean. <b>Click the map</b> for a
+        temperature–depth profile at that point.
+      </div>
+    </div>
+
+    <div class="block">
+      <h2>Inputs</h2>
+      <div class="field">
+        <label>Variable</label>
+        <div class="seg" id="modeSeg">
+          <button data-mode="sst" class="on">Surface</button>
+          <button data-mode="depth">At depth</button>
+        </div>
+      </div>
+      <div class="field" id="depthField" style="display:none">
+        <label>Depth</label>
+        <select id="depthSel"></select>
+      </div>
+      <div class="field">
+        <label>Field source</label>
+        <div class="seg" id="srcSeg">
+          <button data-src="model" class="on">Model</button>
+          <button data-src="reference">Reference</button>
+        </div>
+      </div>
+      <div class="field">
+        <label>Query coordinate</label>
+        <div class="grid2">
+          <input type="number" id="latIn" value="15.00" step="0.25" placeholder="Lat °N">
+          <input type="number" id="lonIn" value="88.00" step="0.25" placeholder="Lon °E">
+        </div>
+        <button class="btn" id="queryBtn">Read profile here</button>
+      </div>
+    </div>
+
+    <div class="block">
+      <h2>Timeline</h2>
+      <div class="inline" style="margin-bottom:4px"><span id="dateLabel">15 Jan 2020</span><span>1–31 Jan</span></div>
+      <input type="range" id="dateSlider" min="0" max="30" value="14" step="1">
+      <button class="btn" id="playBtn">Play timeline</button>
+    </div>
+
+    <div class="block">
+      <h2>Selected point</h2>
+      <div class="inline"><span id="selLoc">15.00°N, 88.00°E</span><span id="selDepth">surface 28.4 °C</span></div>
+    </div>
+
+    <div class="block">
+      <h2>Model</h2>
+      <div class="inline"><span>Architecture</span><b>CNN · ConvGRU · Attention</b></div>
+      <div class="inline"><span>Parameters</span><b>1,330,640</b></div>
+      <div class="inline"><span>Inputs</span><b>9 surface variables</b></div>
+      <div class="inline"><span>Output</span><b>14 depths · 0–700 m</b></div>
+      <div class="inline"><span>Coverage</span><b>45–105°E · 5–30°N</b></div>
+    </div>
+  </aside>
+
+  <section class="strip">
+    <div class="cell">
+      <h3>Temperature–depth profile <span class="sw"><span class="dot" style="background:var(--accent)"></span>Model&nbsp; <span class="dot" style="background:var(--ref)"></span>Reference</span></h3>
+      <canvas id="profile"></canvas>
+    </div>
+    <div class="cell">
+      <h3>At this location</h3>
+      <div class="stats" id="statsBox"></div>
+    </div>
+  </section>
+</main>
+
+<script src="data/coast.js"></script>
+<script>
+(function(){
+"use strict";
+const COAST = window.OCEAN_COAST || [];
+/* ---- synthetic field (mockup) ---- */
+const V={lon0:45,lon1:105,lat0:0,lat1:32};
+const F={lon0:45,lon1:105,lat0:5,lat1:30};
+const DEPTHS=[0,5,10,20,30,50,75,100,125,150,200,300,500,700];
+const GW=241, GH=101;                 /* 0.25 deg grid */
+const ND=DEPTHS.length;
+let day=14, mode='sst', depthIdx=0, source='model';
+
+/* smooth pseudo-temperature field: warm south, cool north, eddies */
+function field(lon,lat,d,day){
+  const x=(lon-45)/60, y=(lat-5)/25;
+  // base: warm tropics -> cooler north; plus seasonal cycle over Jan
+  let t = 29 - 8*y - 1.5*Math.cos(x*Math.PI*3) 
+        + 1.1*Math.sin(6.0*x + 0.3*day/30*6.28) * Math.cos(5.0*y)
+        + 0.7*Math.sin(11*x + 9*y + day*0.2);
+  // depth cooling (thermocline)
+  const z=d;
+  const mixed=25*Math.exp(-z/40);
+  t = t - (1-Math.exp(-z/60))* (2.2 + 17*(1-Math.exp(-z/220)));
+  t += 0.15*Math.sin(z/60);
+  return t;
+}
+function tempAt(lon,lat,d){
+  let t=field(lon,lat,d,day);
+  if(source==='reference') t += 0.25*Math.sin(lon*1.7)*Math.cos(lat*1.3);
+  return t;
+}
+
+/* colour ramp */
+const STOPS=[[0,[12,38,66]],[0.18,[23,76,100]],[0.38,[48,126,140]],[0.55,[116,169,156]],
+  [0.70,[201,181,136]],[0.85,[199,128,79]],[1,[159,60,47]]];
+const LUT=new Uint8Array(768);
+for(let i=0;i<256;i++){const f=i/255;let a=STOPS[0],b=STOPS[STOPS.length-1];
+  for(let k=0;k<STOPS.length-1;k++){if(f>=STOPS[k][0]&&f<=STOPS[k+1][0]){a=STOPS[k];b=STOPS[k+1];break;}}
+  const s=(b[0]-a[0])||1,t=(f-a[0])/s;
+  LUT[i*3]=a[1][0]+(b[1][0]-a[1][0])*t;LUT[i*3+1]=a[1][1]+(b[1][1]-a[1][1])*t;LUT[i*3+2]=a[1][2]+(b[1][2]-a[1][2])*t;}
+(function(){let css='linear-gradient(90deg,';
+  for(let i=0;i<=10;i++){const f=i/10;let a=STOPS[0],b=STOPS[STOPS.length-1];
+    for(let k=0;k<STOPS.length-1;k++){if(f>=STOPS[k][0]&&f<=STOPS[k+1][0]){a=STOPS[k];b=STOPS[k+1];break;}}
+    const s=(b[0]-a[0])||1,t=(f-a[0])/s;
+    css+=`rgb(${Math.round(a[1][0]+(b[1][0]-a[1][0])*t)},${Math.round(a[1][1]+(b[1][1]-a[1][1])*t)},${Math.round(a[1][2]+(b[1][2]-a[1][2])*t)}) ${i*10}%`+(i<10?',':'');}
+  document.getElementById('bar').style.background=css+')';})();
+
+/* offscreen field */
+const fld=document.createElement('canvas');fld.width=GW;fld.height=GH;
+const fctx=fld.getContext('2d');const fimg=fctx.createImageData(GW,GH);
+function buildField(){
+  const lo=mode==='sst'?20:8, hi=mode==='sst'?30:29;
+  const d=(mode==='sst')?0:DEPTHS[depthIdx];
+  const data=fimg.data;
+  for(let h=0;h<GH;h++){
+    const lat=F.lat1-h*(F.lat1-F.lat0)/(GH-1);
+    for(let w=0;w<GW;w++){
+      const lon=F.lon0+w*(F.lon1-F.lon0)/(GW-1);
+      const t=tempAt(lon,lat,d);
+      const o=(h*GW+w)*4, n=Math.max(0,Math.min(1,(t-lo)/(hi-lo)));
+      const c=Math.round(n*255)*3;
+      data[o]=LUT[c];data[o+1]=LUT[c+1];data[o+2]=LUT[c+2];data[o+3]=255;
+    }
+  }
+  fctx.putImageData(fimg,0,0);
+}
+
+/* ---- map ---- */
+const cv=document.getElementById('map'),ctx=cv.getContext('2d');
+let vw=0,vh=0,dpr=1,scale=1,ox=0,oy=0;
+function proj(){const wd=V.lon1-V.lon0,hd=V.lat1-V.lat0;
+  scale=Math.min(vw/wd,vh/hd);ox=(vw-wd*scale)/2;oy=(vh-hd*scale)/2;}
+const X=l=>ox+(l-V.lon0)*scale, Y=la=>oy+(V.lat1-la)*scale;
+
+function resizeMap(){const r=cv.parentElement.getBoundingClientRect();
+  dpr=Math.min(window.devicePixelRatio||1,2);vw=r.width;vh=r.height;
+  cv.width=vw*dpr;cv.height=vh*dpr;cv.style.width=vw+'px';cv.style.height=vh+'px';
+  ctx.setTransform(dpr,0,0,dpr,0,0);proj();drawMap();}
+function drawMap(){
+  ctx.clearRect(0,0,vw,vh);
+  ctx.fillStyle='#12202b';ctx.fillRect(0,0,vw,vh);
+  buildField();
+  const x0=X(F.lon0),x1=X(F.lon1),y0=Y(F.lat1),y1=Y(F.lat0);
+  ctx.imageSmoothingEnabled=true;ctx.globalAlpha=.97;
+  ctx.drawImage(fld,0,0,GW,GH,x0,y0,x1-x0,y1-y0);ctx.globalAlpha=1;
+  ctx.strokeStyle='rgba(236,232,224,.18)';ctx.lineWidth=1;ctx.strokeRect(x0,y0,x1-x0,y1-y0);
+
+  ctx.save();ctx.beginPath();ctx.rect(0,0,vw,vh);ctx.clip();
+  COAST.forEach(poly=>{ctx.beginPath();
+    poly.forEach(ring=>ring.forEach((p,i)=>{const px=X(p[0]),py=Y(p[1]);i?ctx.lineTo(px,py):ctx.moveTo(px,py);}));
+    ctx.closePath();ctx.fillStyle='#232b24';ctx.fill('evenodd');
+    ctx.strokeStyle='rgba(150,160,150,.5)';ctx.lineWidth=1;ctx.stroke();});
+  ctx.restore();
+
+  ctx.strokeStyle='rgba(154,164,172,.12)';ctx.fillStyle='rgba(154,164,172,.6)';
+  ctx.font='10px "SF Mono",monospace';
+  for(let lon=50;lon<=100;lon+=10){const px=X(lon);ctx.beginPath();ctx.moveTo(px,Y(V.lat0));ctx.lineTo(px,Y(V.lat1));ctx.stroke();ctx.fillText(lon+'°E',px+2,Y(V.lat0)-4);}
+  for(let lat=5;lat<=30;lat+=5){const py=Y(lat);ctx.beginPath();ctx.moveTo(X(V.lon0),py);ctx.lineTo(X(V.lon1),py);ctx.stroke();ctx.fillText(lat+'°N',X(V.lon0)+3,py-3);}
+
+  ctx.font='600 11px "SF Mono",monospace';ctx.fillStyle='rgba(154,164,172,.5)';ctx.textAlign='center';
+  ctx.fillText('ARABIAN SEA',58,13);
+  ctx.fillText('BAY OF BENGAL',89,22);
+  ctx.fillText('INDIAN OCEAN',72,29);
+  ctx.textAlign='left';
+
+  const lonp=F.lon0+sel.w*(F.lon1-F.lon0)/(GW-1), latp=F.lat1-sel.h*(F.lat1-F.lat0)/(GH-1);
+  const px=X(lonp),py=Y(latp);
+  ctx.strokeStyle='#ece8e0';ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(px,py,6,0,6.29);ctx.stroke();
+  ctx.fillStyle='#c9a15a';ctx.beginPath();ctx.arc(px,py,2.6,0,6.29);ctx.fill();
+}
+
+/* ---- 3D volume ---- */
+const cv3=document.getElementById('three'),ctx3=cv3.getContext('2d');
+let yaw=-0.62,pitch=0.95,zoom=1.0;
+const cell=1.0,dgap=2.2;
+const SW=41,SH=41;  /* mock 3D grid */
+const cxm=(SW-1)*cell/2,czm=(SH-1)*cell/2,cym=(ND-1)*dgap/2;
+const RM=0.5*Math.sqrt(Math.pow((SW-1)*cell,2)+Math.pow((SH-1)*cell,2)+Math.pow((ND-1)*dgap,2));
+let s3=1,vw3=0,vh3=0;
+function resize3(){const r=cv3.parentElement.getBoundingClientRect();
+  const dp=Math.min(window.devicePixelRatio||1,2);vw3=r.width;vh3=r.height;
+  cv3.width=vw3*dp;cv3.height=vh3*dp;cv3.style.width=vw3+'px';cv3.style.height=vh3+'px';
+  ctx3.setTransform(dp,0,0,dp,0,0);s3=Math.min(vw3,vh3)/(2*RM)*1.28*zoom;draw3d();}
+function proj3(x,y,z){const x0=x-cxm,y0=y-cym,z0=z-czm;
+  const cy=Math.cos(yaw),sy=Math.sin(yaw);const x1=x0*cy+z0*sy,z1=-x0*sy+z0*cy;
+  const cp=Math.cos(pitch),sp=Math.sin(pitch);const y2=y0*cp-z1*sp,z2=y0*sp+z1*cp;
+  return {x:vw3/2+x1*s3,y:vh3/2+y2*s3,z:z2};}
+const lsrc=[];
+for(let d=0;d<ND;d++){const c=document.createElement('canvas');c.width=SW;c.height=SH;lsrc.push(c);}
+function draw3d(){
+  ctx3.clearRect(0,0,vw3,vh3);
+  /* paint slice textures */
+  const lo=8,hi=29;
+  for(let d=0;d<ND;d++){
+    const im=lsrc[d].getContext('2d').createImageData(SW,SH);const dd=im.data;
+    for(let h=0;h<SH;h++)for(let w=0;w<SW;w++){
+      const lon=F.lon0+w*(F.lon1-F.lon0)/(SW-1), lat=F.lat1-h*(F.lat1-F.lat0)/(SH-1);
+      const t=tempAt(lon,lat,DEPTHS[d]);const n=Math.max(0,Math.min(1,(t-lo)/(hi-lo)));
+      const c=Math.round(n*255)*3,o=(h*SW+w)*4;
+      dd[o]=LUT[c];dd[o+1]=LUT[c+1];dd[o+2]=LUT[c+2];dd[o+3]=250;
+    }
+    lsrc[d].getContext('2d').putImageData(im,0,0);
+  }
+  const order=[];for(let d=0;d<ND;d++)order.push({d,sy:proj3(cxm,d*dgap,czm).y});
+  order.sort((a,b)=>b.sy-a.sy);
+  for(const o of order){
+    const d=o.d;
+    const p00=proj3(0,d*dgap,0),p10=proj3((SW-1)*cell,d*dgap,0),p01=proj3(0,d*dgap,(SH-1)*cell);
+    const a=(p10.x-p00.x)/(SW-1),b=(p10.y-p00.y)/(SW-1),c=(p01.x-p00.x)/(SH-1),e=(p01.y-p00.y)/(SH-1);
+    ctx3.save();ctx3.transform(a,b,c,e,p00.x,p00.y);ctx3.globalAlpha=.93;
+    ctx3.drawImage(lsrc[d],0,0,SW,SH,0,0,SW-1,SH-1);ctx3.restore();
+    ctx3.strokeStyle='rgba(236,232,224,.06)';ctx3.lineWidth=1;
+    ctx3.beginPath();ctx3.moveTo(p00.x,p00.y);ctx3.lineTo(p10.x,p10.y);
+    const p11=proj3((SW-1)*cell,d*dgap,(SH-1)*cell);ctx3.lineTo(p11.x,p11.y);ctx3.lineTo(p01.x,p01.y);ctx3.closePath();ctx3.stroke();
+  }
+  /* depth ruler */
+  ctx3.fillStyle='rgba(154,164,172,.75)';ctx3.font='10px "SF Mono",monospace';ctx3.textAlign='right';
+  for(const dep of [0,100,300,700]){let d=0;for(let i=0;i<ND-1;i++){if(dep>=DEPTHS[i]&&dep<=DEPTHS[i+1]){d=i+(dep-DEPTHS[i])/(DEPTHS[i+1]-DEPTHS[i]);break;}}
+    const p=proj3(-1.2,d*dgap,0);ctx3.fillText(dep+'m',p.x-4,p.y+3);}
+  ctx3.textAlign='left';
+}
+
+/* ---- profile ---- */
+const pcv=document.getElementById('profile'),pctx=pcv.getContext('2d');
+function drawProfile(){
+  const r=pcv.getBoundingClientRect();const padL=40,padR=12,padT=8,padB=20;
+  const w=Math.max(10,r.width),h=Math.max(10,r.height);const dp=Math.min(window.devicePixelRatio||1,2);
+  pcv.width=w*dp;pcv.height=h*dp;pctx.setTransform(dp,0,0,dp,0,0);pctx.clearRect(0,0,w,h);
+  const d0=0,d1=700,t0=8,t1=30;
+  const PX=v=>padL+(v-t0)/(t1-t0)*(w-padL-padR), PY=v=>padT+(v-d0)/(d1-d0)*(h-padT-padB);
+  pctx.strokeStyle='rgba(154,164,172,.15)';pctx.lineWidth=1;pctx.font='9.5px "SF Mono",monospace';pctx.fillStyle='#6d7881';
+  for(let t=10;t<=30;t+=5){const x=PX(t);pctx.beginPath();pctx.moveTo(x,padT);pctx.lineTo(x,h-padB);pctx.stroke();pctx.fillText(t+'°',x-6,h-padB+13);}
+  for(const dep of [0,100,300,700]){const y=PY(dep);pctx.beginPath();pctx.moveTo(padL,y);pctx.lineTo(w-padR,y);pctx.stroke();pctx.fillText(dep+'m',4,y+3);}
+  const lon=F.lon0+sel.w*(F.lon1-F.lon0)/(GW-1), lat=F.lat1-sel.h*(F.lat1-F.lat0)/(GH-1);
+  function line(src,color,wd){pctx.beginPath();
+    DEPTHS.forEach((dep,d)=>{let t;if(src==='model'){t=field(lon,lat,dep,day);}else{t=field(lon,lat,dep,day)+0.25*Math.sin(lon*1.7)*Math.cos(lat*1.3);}
+      const x=PX(t),y=PY(dep);d?pctx.lineTo(x,y):pctx.moveTo(x,y);});
+    pctx.strokeStyle=color;pctx.lineWidth=wd;pctx.stroke();}
+  line('reference','#5f8fa3',1.5);line('model','#c9a15a',2.2);
+}
+
+/* ---- state/selection ---- */
+let sel={w:Math.round((88-45)/60*(GW-1)),h:Math.round((30-15)/25*(GH-1))};
+const depthSel=document.getElementById('depthSel');
+DEPTHS.forEach((d,i)=>{const o=document.createElement('option');o.value=i;o.textContent=d+' m';depthSel.appendChild(o);});
+depthSel.value=0;
+
+function refresh(){
+  drawMap();draw3d();drawProfile();
+  const dt=new Date(2020,0,1);dt.setDate(dt.getDate()+day);
+  const mo=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  document.getElementById('dateLabel').textContent=String(dt.getDate()).padStart(2,'0')+' '+mo[dt.getMonth()]+' 2020';
+  document.getElementById('viewTag').textContent=(currentView==='map'?'Map':'3D volume')+' · '+
+    (mode==='sst'?'surface temperature':('temperature at '+DEPTHS[depthIdx]+' m'));
+  document.getElementById('legTitle').textContent=(mode==='sst'?'Sea temperature at surface':('Temperature at '+DEPTHS[depthIdx]+' m'));
+  document.getElementById('tmin').textContent=(mode==='sst'?20:8);
+  document.getElementById('tmax').textContent=(mode==='sst'?30:29);
+  const lon=F.lon0+sel.w*(F.lon1-F.lon0)/(GW-1), lat=F.lat1-sel.h*(F.lat1-F.lat0)/(GH-1);
+  document.getElementById('selLoc').textContent=lat.toFixed(2)+'°N, '+lon.toFixed(2)+'°E';
+  const s0=field(lon,lat,0,day), s7=field(lon,lat,700,day);
+  document.getElementById('selDepth').textContent='surface '+s0.toFixed(1)+' °C';
+  document.getElementById('statsBox').innerHTML=
+    '<div>Surface &nbsp; <b>'+s0.toFixed(2)+' °C</b></div>'+
+    '<div>300 m &nbsp; <b>'+field(lon,lat,300,day).toFixed(2)+' °C</b></div>'+
+    '<div>700 m &nbsp; <b>'+s7.toFixed(2)+' °C</b></div>'+
+    '<div>Thermocline &nbsp; <b>~120 m</b></div>';
+}
+
+/* ---- interaction ---- */
+let dragging=false,moved=false,lx=0,ly=0;
+cv.addEventListener('pointerdown',e=>{dragging=true;moved=false;lx=e.clientX;ly=e.clientY;cv.setPointerCapture(e.pointerId);});
+cv.addEventListener('pointermove',e=>{if(dragging&&(Math.abs(e.clientX-lx)+Math.abs(e.clientY-ly)>3))moved=true;});
+cv.addEventListener('pointerup',e=>{dragging=false;if(!moved)pick(e);});
+function pick(e){const r=cv.getBoundingClientRect();const mx=e.clientX-r.left,my=e.clientY-r.top;
+  const lon=V.lon0+(mx-ox)/scale,lat=V.lat1-(my-oy)/scale;
+  sel.w=Math.max(0,Math.min(GW-1,Math.round((lon-F.lon0)/(F.lon1-F.lon0)*(GW-1))));
+  sel.h=Math.max(0,Math.min(GH-1,Math.round((lat-F.lat0)/(F.lat1-F.lat0)*(GH-1))));
+  document.getElementById('latIn').value=(F.lat1-sel.h*(F.lat1-F.lat0)/(GH-1)).toFixed(2);
+  document.getElementById('lonIn').value=(F.lon0+sel.w*(F.lon1-F.lon0)/(GW-1)).toFixed(2);
+  refresh();}
+
+cv3.addEventListener('pointerdown',e=>{dragging=true;lx=e.clientX;ly=e.clientY;cv3.classList.add('grabbing');cv3.setPointerCapture(e.pointerId);});
+cv3.addEventListener('pointermove',e=>{if(!dragging)return;yaw+=(e.clientX-lx)*0.008;
+  pitch=Math.max(-1.35,Math.min(1.35,pitch+(e.clientY-ly)*0.006));lx=e.clientX;ly=e.clientY;draw3d();});
+cv3.addEventListener('pointerup',()=>{dragging=false;cv3.classList.remove('grabbing');});
+cv3.addEventListener('wheel',e=>{e.preventDefault();zoom=Math.max(.5,Math.min(3,zoom*(e.deltaY<0?1.08:.925)));
+  s3=Math.min(vw3,vh3)/(2*RM)*1.28*zoom;draw3d();},{passive:false});
+
+/* controls */
+let currentView='map';
+document.getElementById('viewTabs').addEventListener('click',e=>{
+  const b=e.target.closest('button');if(!b)return;currentView=b.dataset.view;
+  [...e.currentTarget.children].forEach(x=>x.classList.toggle('on',x===b));
+  const mp=document.querySelector('.mapPane'),tp=document.querySelector('.threePane');
+  mp.style.display=currentView==='map'?'block':'none';
+  tp.style.display=currentView==='3d'?'block':'none';
+  if(currentView==='3d')resize3(); else drawMap();
+  refresh();
+});
+document.getElementById('modeSeg').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;mode=b.dataset.mode;
+  [...e.currentTarget.children].forEach(x=>x.classList.toggle('on',x===b));
+  document.getElementById('depthField').style.display=(mode==='depth')?'block':'none';refresh();});
+document.getElementById('depthSel').addEventListener('change',e=>{depthIdx=+e.target.value;refresh();});
+document.getElementById('srcSeg').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;source=b.dataset.src;
+  [...e.currentTarget.children].forEach(x=>x.classList.toggle('on',x===b));refresh();});
+document.getElementById('queryBtn').addEventListener('click',()=>{
+  const la=parseFloat(document.getElementById('latIn').value),lo=parseFloat(document.getElementById('lonIn').value);
+  if(isNaN(la)||isNaN(lo))return;
+  sel.h=Math.round((Math.min(F.lat1,Math.max(F.lat0,la))-F.lat0)/(F.lat1-F.lat0)*(GH-1));
+  sel.w=Math.round((Math.min(F.lon1,Math.max(F.lon0,lo))-F.lon0)/(F.lon1-F.lon0)*(GW-1));refresh();});
+document.getElementById('dateSlider').addEventListener('input',e=>{day=+e.target.value;refresh();});
+let playing=false,timer=null;
+document.getElementById('playBtn').addEventListener('click',e=>{playing=!playing;e.target.classList.toggle('on',playing);
+  e.target.textContent=playing?'Pause':'Play timeline';
+  if(playing){timer=setInterval(()=>{day=(day+1)%31;document.getElementById('dateSlider').value=day;refresh();},650);}else clearInterval(timer);});
+
+window.addEventListener('resize',()=>{resizeMap();resize3();drawProfile();});
+resizeMap();resize3();refresh();
+/* allow ?view=3d for previews */
+if(new URLSearchParams(location.search).get('view')==='3d'){
+  document.querySelector('[data-view="3d"]').click();
+}
+})();
+</script>
+</body>
+</html>
